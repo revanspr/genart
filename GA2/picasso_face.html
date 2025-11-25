@@ -5,25 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Picasso-Style Face Art</title>
     <style>
-        body {
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@300;400;600&display=swap');
+
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            background-color: #f0f0f0;
-            font-family: 'Arial', sans-serif;
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        #container {
+            justify-content: center;
+            background: #000;
+            font-family: 'Poppins', sans-serif;
             position: relative;
-            display: flex;
-            gap: 20px;
+            overflow: hidden;
         }
 
         video {
@@ -31,87 +30,149 @@
         }
 
         canvas {
-            border: 3px solid #333;
-            background-color: white;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
         }
 
-        #controls {
-            margin-top: 20px;
+        #left-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        #right-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
         }
 
         button, select {
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            background-color: #4CAF50;
+            background: rgba(0, 0, 0, 0.7);
             color: white;
-            border: none;
-            border-radius: 4px;
-            transition: background-color 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+            backdrop-filter: blur(10px);
+            min-width: 180px;
         }
 
-        button:hover {
-            background-color: #45a049;
+        button:hover, select:hover {
+            background: rgba(0, 0, 0, 0.85);
+            border-color: rgba(255, 255, 255, 0.4);
         }
 
-        select {
-            background-color: #2196F3;
-        }
-
-        select:hover {
-            background-color: #0b7dda;
+        select option {
+            background: #222;
+            color: white;
         }
 
         .control-group {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 8px;
+            min-width: 180px;
+        }
+
+        .control-group:hover {
+            background: rgba(0, 0, 0, 0.85);
+            border-color: rgba(255, 255, 255, 0.4);
         }
 
         label {
-            font-size: 14px;
-            color: #666;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        label span {
+            color: #fff;
+            font-weight: 700;
+            font-size: 13px;
         }
 
         input[type="range"] {
-            width: 150px;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
         }
 
-        #status {
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #fff;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.6);
         }
     </style>
 </head>
 <body>
-    <h1>Picasso-Style Webcam Face Art</h1>
+    <video id="video" autoplay></video>
+    <canvas id="canvas"></canvas>
 
-    <div id="container">
-        <video id="video" width="640" height="480" autoplay></video>
-        <canvas id="canvas" width="640" height="480"></canvas>
+    <div id="left-controls">
+        <button id="startBtn">Start Webcam</button>
+        <select id="styleSelect">
+            <option value="colorBlocks">Color Blocks</option>
+            <option value="cubist">Cubist</option>
+            <option value="fragmented">Fragmented</option>
+            <option value="geometric">Geometric Planes</option>
+        </select>
     </div>
 
-    <div id="controls">
-        <button id="startBtn">Start Webcam</button>
-
-        <div class="control-group">
-            <label for="styleSelect">Style:</label>
-            <select id="styleSelect">
-                <option value="cubist">Cubist</option>
-                <option value="fragmented">Fragmented</option>
-                <option value="geometric">Geometric Planes</option>
-                <option value="colorBlocks">Color Blocks</option>
-            </select>
-        </div>
-
+    <div id="right-controls">
         <div class="control-group">
             <label for="fragmentSlider">Fragment Size: <span id="fragmentValue">20</span></label>
             <input type="range" id="fragmentSlider" min="10" max="100" value="20">
@@ -127,8 +188,6 @@
             <input type="range" id="colorShiftSlider" min="0" max="100" value="30">
         </div>
     </div>
-
-    <div id="status">Click "Start Webcam" to begin</div>
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
@@ -167,17 +226,26 @@
             document.getElementById('colorShiftValue').textContent = colorShift;
         });
 
+        // Set canvas to fullscreen
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
         // Start webcam
         startBtn.addEventListener('click', async () => {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 640, height: 480 }
+                    video: {
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
                 });
                 video.srcObject = stream;
-                status.textContent = 'Webcam active - Creating Picasso-style art!';
-                status.style.backgroundColor = '#d4edda';
                 startBtn.textContent = 'Stop Webcam';
-                startBtn.style.backgroundColor = '#f44336';
 
                 video.addEventListener('loadeddata', () => {
                     drawPicassoStyle();
@@ -185,8 +253,7 @@
 
                 startBtn.onclick = stopWebcam;
             } catch (err) {
-                status.textContent = 'Error accessing webcam: ' + err.message;
-                status.style.backgroundColor = '#f8d7da';
+                alert('Error accessing webcam: ' + err.message);
             }
         });
 
@@ -198,15 +265,28 @@
             if (animationId) {
                 cancelAnimationFrame(animationId);
             }
-            status.textContent = 'Webcam stopped';
-            status.style.backgroundColor = '#fff3cd';
             startBtn.textContent = 'Start Webcam';
-            startBtn.style.backgroundColor = '#4CAF50';
             startBtn.onclick = () => location.reload();
         }
 
         function drawPicassoStyle() {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            // Draw video to fill canvas while maintaining aspect ratio
+            const videoAspect = video.videoWidth / video.videoHeight;
+            const canvasAspect = canvas.width / canvas.height;
+
+            let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+
+            if (videoAspect > canvasAspect) {
+                drawHeight = canvas.height;
+                drawWidth = drawHeight * videoAspect;
+                offsetX = (canvas.width - drawWidth) / 2;
+            } else {
+                drawWidth = canvas.width;
+                drawHeight = drawWidth / videoAspect;
+                offsetY = (canvas.height - drawHeight) / 2;
+            }
+
+            ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
 
             const style = styleSelect.value;
 
