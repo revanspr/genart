@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git init:*)",
       "Bash(git remote add:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(start \"\" \"c:\\Users\\Revans.Ragbir\\Gen Art\\GA2\\picasso_face.html\")"
     ],
     "deny": [],
     "ask": []
