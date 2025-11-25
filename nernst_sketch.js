@@ -1,0 +1,72 @@
+// Nernst Equation Generative Art
+let time = 0;
+let particles = [];
+
+// Nernst equation parameters
+const R = 8.314;
+const T = 298;
+const n = 1;
+const F = 96485;
+const E0 = 0.5;
+
+function setup() {
+    createCanvas(800, 800);
+    colorMode(HSB, 360, 100, 100, 100);
+
+    // Initialize particles
+    for (let i = 0; i < 150; i++) {
+        particles.push({
+            index: i,
+            offset: i * 0.1,
+            spiralSpeed: 0.02 + (i % 10) * 0.001
+        });
+    }
+}
+
+function draw() {
+    // Create trailing effect
+    background(0, 0, 0, 5);
+
+    translate(width / 2, height / 2);
+
+    // Update and display all particles
+    for (let particle of particles) {
+        let angle = time * particle.spiralSpeed + particle.offset;
+
+        // Calculate concentration ratio
+        let concentrationRatio = 1 + sin(time + particle.offset) * 0.5;
+
+        // Nernst equation calculation
+        let nernstValue = E0 + (R * T / (n * F)) * Math.log(concentrationRatio);
+
+        // Map to radius
+        let radius = map(nernstValue, 0.45, 0.55, 50, 350);
+        radius += sin(time * 2 + particle.offset) * 30;
+
+        // Spiral coordinates
+        let spiralAngle = angle * TWO_PI * 3;
+        let x = cos(spiralAngle) * radius;
+        let y = sin(spiralAngle) * radius;
+
+        // Rainbow colors
+        let hue = (angle * 360 + particle.index * 10) % 360;
+        let saturation = 80 + sin(time + particle.offset) * 20;
+        let brightness = 90 + cos(time * 1.5 + particle.offset) * 10;
+
+        // Draw particle
+        noStroke();
+        fill(hue, saturation, brightness, 80);
+        ellipse(x, y, 8, 8);
+
+        // Glow
+        fill(hue, saturation - 20, brightness, 30);
+        ellipse(x, y, 16, 16);
+    }
+
+    time += 0.01;
+}
+
+function mousePressed() {
+    background(0);
+    time = 0;
+}
