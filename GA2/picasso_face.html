@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Picasso-Style Face Art</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        #container {
+            position: relative;
+            display: flex;
+            gap: 20px;
+        }
+
+        video {
+            display: none;
+        }
+
+        canvas {
+            border: 3px solid #333;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button, select {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        select {
+            background-color: #2196F3;
+        }
+
+        select:hover {
+            background-color: #0b7dda;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        input[type="range"] {
+            width: 150px;
+        }
+
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Picasso-Style Webcam Face Art</h1>
+
+    <div id="container">
+        <video id="video" width="640" height="480" autoplay></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+
+    <div id="controls">
+        <button id="startBtn">Start Webcam</button>
+
+        <div class="control-group">
+            <label for="styleSelect">Style:</label>
+            <select id="styleSelect">
+                <option value="cubist">Cubist</option>
+                <option value="fragmented">Fragmented</option>
+                <option value="geometric">Geometric Planes</option>
+                <option value="colorBlocks">Color Blocks</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="fragmentSlider">Fragment Size: <span id="fragmentValue">20</span></label>
+            <input type="range" id="fragmentSlider" min="10" max="100" value="20">
+        </div>
+
+        <div class="control-group">
+            <label for="rotationSlider">Rotation: <span id="rotationValue">15</span>°</label>
+            <input type="range" id="rotationSlider" min="0" max="45" value="15">
+        </div>
+
+        <div class="control-group">
+            <label for="colorShiftSlider">Color Shift: <span id="colorShiftValue">30</span></label>
+            <input type="range" id="colorShiftSlider" min="0" max="100" value="30">
+        </div>
+    </div>
+
+    <div id="status">Click "Start Webcam" to begin</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const status = document.getElementById('status');
+        const styleSelect = document.getElementById('styleSelect');
+        const fragmentSlider = document.getElementById('fragmentSlider');
+        const rotationSlider = document.getElementById('rotationSlider');
+        const colorShiftSlider = document.getElementById('colorShiftSlider');
+
+        let stream = null;
+        let animationId = null;
+        let faceDetections = [];
+        let fragmentSize = 20;
+        let rotationAngle = 15;
+        let colorShift = 30;
+
+        // Update slider values
+        fragmentSlider.addEventListener('input', (e) => {
+            fragmentSize = parseInt(e.target.value);
+            document.getElementById('fragmentValue').textContent = fragmentSize;
+        });
+
+        rotationSlider.addEventListener('input', (e) => {
+            rotationAngle = parseInt(e.target.value);
+            document.getElementById('rotationValue').textContent = rotationAngle;
+        });
+
+        colorShiftSlider.addEventListener('input', (e) => {
+            colorShift = parseInt(e.target.value);
+            document.getElementById('colorShiftValue').textContent = colorShift;
+        });
+
+        // Start webcam
+        startBtn.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+                video.srcObject = stream;
+                status.textContent = 'Webcam active - Creating Picasso-style art!';
+                status.style.backgroundColor = '#d4edda';
+                startBtn.textContent = 'Stop Webcam';
+                startBtn.style.backgroundColor = '#f44336';
+
+                video.addEventListener('loadeddata', () => {
+                    drawPicassoStyle();
+                });
+
+                startBtn.onclick = stopWebcam;
+            } catch (err) {
+                status.textContent = 'Error accessing webcam: ' + err.message;
+                status.style.backgroundColor = '#f8d7da';
+            }
+        });
+
+        function stopWebcam() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            status.textContent = 'Webcam stopped';
+            status.style.backgroundColor = '#fff3cd';
+            startBtn.textContent = 'Start Webcam';
+            startBtn.style.backgroundColor = '#4CAF50';
+            startBtn.onclick = () => location.reload();
+        }
+
+        function drawPicassoStyle() {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const style = styleSelect.value;
+
+            switch(style) {
+                case 'cubist':
+                    applyCubistStyle();
+                    break;
+                case 'fragmented':
+                    applyFragmentedStyle();
+                    break;
+                case 'geometric':
+                    applyGeometricPlanes();
+                    break;
+                case 'colorBlocks':
+                    applyColorBlocks();
+                    break;
+            }
+
+            animationId = requestAnimationFrame(drawPicassoStyle);
+        }
+
+        function applyCubistStyle() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(imageData, 0, 0);
+
+            ctx.fillStyle = '#f5f5dc';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Create fragmented face sections
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const faceRadius = 150;
+
+            // Draw multiple overlapping face fragments at different angles
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI / 4) + (rotationAngle * Math.PI / 180);
+                const offsetX = Math.cos(angle) * 20;
+                const offsetY = Math.sin(angle) * 20;
+
+                ctx.save();
+                ctx.translate(centerX + offsetX, centerY + offsetY);
+                ctx.rotate(angle * 0.3);
+
+                // Create irregular clipping path
+                ctx.beginPath();
+                ctx.moveTo(-100, -100);
+                ctx.lineTo(100, -80);
+                ctx.lineTo(120, 100);
+                ctx.lineTo(-80, 120);
+                ctx.closePath();
+                ctx.clip();
+
+                // Draw image fragment with color shift
+                ctx.globalAlpha = 0.6 + (i % 3) * 0.1;
+                ctx.filter = `hue-rotate(${(i * colorShift)}deg) saturate(${150 + i * 10}%)`;
+                ctx.drawImage(tempCanvas, -centerX, -centerY);
+                ctx.restore();
+            }
+
+            // Draw geometric shapes overlay
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.arc(centerX + (Math.random() - 0.5) * 100,
+                       centerY + (Math.random() - 0.5) * 100,
+                       30 + Math.random() * 40, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        function applyFragmentedStyle() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(imageData, 0, 0);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw displaced rectangular fragments
+            for (let y = 0; y < canvas.height; y += fragmentSize) {
+                for (let x = 0; x < canvas.width; x += fragmentSize) {
+                    const offsetX = (Math.random() - 0.5) * fragmentSize * 0.5;
+                    const offsetY = (Math.random() - 0.5) * fragmentSize * 0.5;
+                    const rotation = (Math.random() - 0.5) * rotationAngle * Math.PI / 180;
+
+                    ctx.save();
+                    ctx.translate(x + fragmentSize/2 + offsetX, y + fragmentSize/2 + offsetY);
+                    ctx.rotate(rotation);
+                    ctx.drawImage(tempCanvas, x, y, fragmentSize, fragmentSize,
+                                 -fragmentSize/2, -fragmentSize/2, fragmentSize, fragmentSize);
+
+                    // Add outline
+                    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(-fragmentSize/2, -fragmentSize/2, fragmentSize, fragmentSize);
+                    ctx.restore();
+                }
+            }
+        }
+
+        function applyGeometricPlanes() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(imageData, 0, 0);
+
+            ctx.fillStyle = '#e8e8e8';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Create triangular planes
+            const numTriangles = 30;
+            for (let i = 0; i < numTriangles; i++) {
+                const x1 = Math.random() * canvas.width;
+                const y1 = Math.random() * canvas.height;
+                const size = fragmentSize * 2;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x1 + size, y1);
+                ctx.lineTo(x1 + size/2, y1 + size);
+                ctx.closePath();
+                ctx.clip();
+
+                ctx.filter = `hue-rotate(${Math.random() * colorShift}deg)`;
+                ctx.drawImage(tempCanvas, 0, 0);
+
+                ctx.restore();
+
+                // Outline
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x1 + size, y1);
+                ctx.lineTo(x1 + size/2, y1 + size);
+                ctx.closePath();
+                ctx.stroke();
+            }
+        }
+
+        function applyColorBlocks() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // Posterize and block colors
+            for (let y = 0; y < canvas.height; y += fragmentSize) {
+                for (let x = 0; x < canvas.width; x += fragmentSize) {
+                    // Get average color of block
+                    let r = 0, g = 0, b = 0, count = 0;
+
+                    for (let dy = 0; dy < fragmentSize && y + dy < canvas.height; dy++) {
+                        for (let dx = 0; dx < fragmentSize && x + dx < canvas.width; dx++) {
+                            const i = ((y + dy) * canvas.width + (x + dx)) * 4;
+                            r += data[i];
+                            g += data[i + 1];
+                            b += data[i + 2];
+                            count++;
+                        }
+                    }
+
+                    r = Math.floor(r / count / 64) * 64;
+                    g = Math.floor(g / count / 64) * 64;
+                    b = Math.floor(b / count / 64) * 64;
+
+                    // Apply color shift
+                    r = (r + colorShift) % 256;
+                    g = (g + colorShift/2) % 256;
+                    b = (b + colorShift/3) % 256;
+
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    ctx.fillRect(x, y, fragmentSize, fragmentSize);
+
+                    // Add black outline
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x, y, fragmentSize, fragmentSize);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
